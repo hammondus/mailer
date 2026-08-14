@@ -1,0 +1,11 @@
+# Test and coverage output
+coverage.out
+*.test
+
+# Working notes. These discuss real domains, addresses and DNS layout for the
+# deployment this library was written for, which has no business in a public
+# repository. Kept locally, never tracked.
+notes.md
+
+# macOS
+.DS_Store
