@@ -196,6 +196,13 @@ by configuration:
 `LogSender` takes a `*slog.Logger` rather than using the global `log` package,
 because a library that writes to its host's global logger is a nuisance.
 
+`LogSender` logs `Message.Text` at info level, not only a summary. The
+composed message is quoted-printable, so a link such as `?token=abc` reads
+`?token=3Dabc` there and cannot be copied; logging it at debug level alone
+also hid it from any host whose logger runs at the default info level. The
+cost is that a verification token reaches the logs. That is the purpose of
+`LogSender`, and it runs only when SMTP is not configured.
+
 ## Testing approach
 
 The MIME tests parse the built message with `net/mail` and `mime/multipart`

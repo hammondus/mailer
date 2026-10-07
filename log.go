@@ -26,19 +26,29 @@ func NewLog(l *slog.Logger) *LogSender {
 	return &LogSender{log: l}
 }
 
-// Send logs a summary at info level and the fully composed message at debug
-// level, then reports success. Composition still runs, so a malformed message
-// fails in development exactly as it would in production.
+// Send logs a summary and the plain-text body at info level, and the fully
+// composed message at debug level, then reports success. Composition still
+// runs, so a malformed message fails in development exactly as it would in
+// production.
+//
+// The body is logged from Message.Text rather than from the composed message
+// because the composed body is quoted-printable: a link such as ?token=abc
+// appears as ?token=3Dabc and long lines gain soft breaks, so a verification
+// link copied from it does not work.
 func (s *LogSender) Send(ctx context.Context, m *Message) error {
 	raw, err := m.Build("dev@localhost")
 	if err != nil {
 		return err
 	}
-	s.log.InfoContext(ctx, "mailer: SMTP not configured, message not sent",
+	attrs := []any{
 		"to", strings.Join(m.To, ", "),
 		"subject", m.Subject,
 		"bytes", len(raw),
-	)
+	}
+	if m.Text != "" {
+		attrs = append(attrs, "text", m.Text)
+	}
+	s.log.InfoContext(ctx, "mailer: SMTP not configured, message not sent", attrs...)
 	s.log.DebugContext(ctx, "mailer: composed message", "raw", string(raw))
 	return nil
 }

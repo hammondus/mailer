@@ -1,8 +1,11 @@
 package mailer
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
+	"strings"
 	"testing"
 	"time"
 )
@@ -86,6 +89,22 @@ func TestLogSenderComposesButDoesNotSend(t *testing.T) {
 	// development would hide the bug until deploy.
 	if err := s.Send(t.Context(), &Message{To: []string{"a@example.com"}}); err == nil {
 		t.Error("LogSender accepted a message with no body")
+	}
+}
+
+func TestLogSenderLogsReadableText(t *testing.T) {
+	var buf bytes.Buffer
+	s := NewLog(slog.New(slog.NewTextHandler(&buf, nil))) // info level
+	link := "https://example.com/verify?token=abc123"
+	if err := s.Send(t.Context(), &Message{
+		To: []string{"a@example.com"}, Subject: "Verify", Text: "Open " + link + " to finish.",
+	}); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+	// The link must survive verbatim at the default level: the composed body
+	// is quoted-printable, where it would read token=3Dabc123.
+	if !strings.Contains(buf.String(), link) {
+		t.Errorf("info log does not contain the link verbatim:\n%s", buf.String())
 	}
 }
 
